@@ -14,6 +14,7 @@ perf_SOURCES = \
 test_SOURCES = \
 	test-audio.cc \
 	test-fft.cc \
+	test-path.cc \
 	test-utils.cc \
 	test.cc \
 	test.h

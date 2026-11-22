@@ -5,6 +5,8 @@ libspek_a_SOURCES = \
 	spek-audio.h \
 	spek-fft.cc \
 	spek-fft.h \
+	spek-path.cc \
+	spek-path.h \
 	spek-palette.cc \
 	spek-palette.h \
 	spek-pipeline.cc \

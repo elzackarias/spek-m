@@ -5,6 +5,7 @@
 #include "spek-audio.h"
 #include "spek-events.h"
 #include "spek-fft.h"
+#include "spek-path.h"
 #include "spek-platform.h"
 #include "spek-ruler.h"
 #include "spek-utils.h"
@@ -391,7 +392,7 @@ void SpekSpectrogram::start()
     if (samples > 0) {
         this->image.Create(samples, bits_to_bands(this->fft_bits));
         this->pipeline = spek_pipeline_open(
-            this->audio->open(std::string(this->path.utf8_str()), this->stream),
+            this->audio->open(spek_resolve_path(std::string(this->path.utf8_str())), this->stream),
             this->fft->create(this->fft_bits),
             this->stream,
             this->channel,

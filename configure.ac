@@ -23,6 +23,8 @@ AS_CASE([$host],
 	[*-*-darwin*], [
 		os="OSX"
 		AC_DEFINE([OS_OSX], [1], [OS X])
+		# spek-path.cc uses CoreFoundation for Unicode normalization.
+		LIBS="$LIBS -framework CoreFoundation"
 	],
 	[*], [
 		os="UNIX"
