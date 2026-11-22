@@ -16,8 +16,8 @@ This fork builds Spek natively for arm64, so it runs faster and without Rosetta.
 
 Requirements: an **Apple Silicon Mac** running **macOS 27.0 or later**.
 
-1. Download `Spek-0.8.5-arm64.dmg` from
-   [Releases](https://github.com/elzackarias/spek-m/releases).
+1. Download the `.dmg` from the
+   [latest release](https://github.com/elzackarias/spek-m/releases/latest).
 2. Open it and drag Spek to **Applications**.
 3. The app is not notarized by Apple, so macOS blocks it the first time. To
    allow it:
@@ -40,7 +40,10 @@ Requirements: an **Apple Silicon Mac** running **macOS 27.0 or later**.
 - **Ad-hoc code signing**, which arm64 binaries require to run.
 - **macOS 27.0 minimum**: libraries whose Homebrew bottles require a newer
   macOS are rebuilt by `dist/osx/build-deps.sh`.
-- **Tests updated** for FFmpeg 9; all 480 pass.
+- **Accented file names on network shares**: files like `León.flac` on SMB
+  shares now open (wxWidgets converts names to Unicode NFC; Spek now matches
+  them to the exact on-disk spelling).
+- **Tests updated** for FFmpeg 9, plus new path tests.
 
 ## Building from source
 
