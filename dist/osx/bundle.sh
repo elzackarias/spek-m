@@ -6,9 +6,23 @@ LANGUAGES="bs ca cs da de el eo es fi fr gl he hr hu id it ja ko lv nb nl nn pl 
 
 cd $(dirname $0)/../..
 
+# Oldest macOS version the app must run on. Libraries whose Homebrew bottles
+# need something newer are rebuilt by build-deps.sh into dist/osx/deps.
+MACOS_TARGET=${MACOS_TARGET:-27.0}
+export MACOSX_DEPLOYMENT_TARGET=$MACOS_TARGET
+DEPS_LIB=$(pwd)/dist/osx/deps/lib
+
+# Homebrew lives in /opt/homebrew on Apple Silicon and /usr/local on Intel.
+BREW_PREFIX=$(brew --prefix)
+WX_ACLOCAL=$(dirname $(find "$BREW_PREFIX"/Cellar/wxwidgets -name wxwin.m4 | head -n1))
+export ACLOCAL_PATH="$WX_ACLOCAL:$BREW_PREFIX/share/aclocal${ACLOCAL_PATH:+:$ACLOCAL_PATH}"
+# /opt/homebrew is not in the default compiler search paths (needed for libintl).
+export CPPFLAGS="-I$BREW_PREFIX/include ${CPPFLAGS:-}"
+export LDFLAGS="-L$BREW_PREFIX/lib ${LDFLAGS:-}"
+
 rm -f src/spek
 
-./autogen.sh && make -j8 || exit 1
+./autogen.sh && make clean && make -j8 || exit 1
 
 cd dist/osx
 rm -fr Spek.app
@@ -28,7 +42,7 @@ cp ../../lic/* Spek.app/Contents/Resources/lic/
 for lang in $LANGUAGES; do
     mkdir -p Spek.app/Contents/Resources/"$lang".lproj
     cp -v ../../po/"$lang".gmo Spek.app/Contents/Resources/"$lang".lproj/spek.mo
-    cp -v /usr/local/share/locale/"$lang"/LC_MESSAGES/wxstd-3.2.mo Spek.app/Contents/Resources/"$lang".lproj/ || echo "No WX translation for $lang"
+    cp -v "$BREW_PREFIX"/share/locale/"$lang"/LC_MESSAGES/wxstd-*.mo Spek.app/Contents/Resources/"$lang".lproj/ || echo "No WX translation for $lang"
 done
 mkdir -p Spek.app/Contents/Resources/en.lproj
 
@@ -37,10 +51,17 @@ while [ ! -z "$BINS" ]; do
     NEWBINS=""
     for bin in $BINS; do
         echo "Updating dependendies for $bin."
-        LIBS=$(otool -L $bin | { grep /usr/local || test $? = 1; } | tr -d '\t' | awk '{print $1}')
+        LIBS=$(otool -L $bin | tail -n +2 | { grep -E "$BREW_PREFIX|@rpath/|@loader_path/" || test $? = 1; } | tr -d '\t' | awk '{print $1}')
         for lib in $LIBS; do
-            reallib=$(realpath $lib)
+            case $lib in
+                @rpath/*|@loader_path/*) reallib=$(realpath "$BREW_PREFIX/lib/$(basename $lib)") ;;
+                *) reallib=$(realpath $lib) ;;
+            esac
             libname=$(basename $reallib)
+            # Prefer a copy rebuilt for MACOS_TARGET by build-deps.sh.
+            if [ -f "$DEPS_LIB/$libname" ]; then
+                reallib="$DEPS_LIB/$libname"
+            fi
             install_name_tool -change $lib @executable_path/../Frameworks/$libname $bin
             if [ ! -f Spek.app/Contents/Frameworks/$libname ]; then
                 echo "\tBundling $reallib."
@@ -53,6 +74,26 @@ while [ ! -z "$BINS" ]; do
     done
     BINS="$NEWBINS"
 done
+
+# Fail if anything needs a newer macOS than MACOS_TARGET.
+TOO_NEW=""
+for f in Spek.app/Contents/MacOS/Spek Spek.app/Contents/Frameworks/*; do
+    minos=$(otool -l "$f" | awk '/LC_BUILD_VERSION/{f=1} f&&/minos/{print $2; f=0}')
+    if [ "$(printf '%s\n%s\n' "$MACOS_TARGET" "$minos" | sort -V | tail -n1)" != "$MACOS_TARGET" ]; then
+        TOO_NEW="$TOO_NEW\n  $(basename "$f") (macOS $minos)"
+    fi
+done
+if [ -n "$TOO_NEW" ]; then
+    echo -e "These need a newer macOS than $MACOS_TARGET:$TOO_NEW"
+    echo "Add them to build-deps.sh and run it, then bundle again."
+    exit 1
+fi
+/usr/libexec/PlistBuddy -c "Set :LSMinimumSystemVersion $MACOS_TARGET" Spek.app/Contents/Info.plist
+
+# install_name_tool invalidates code signatures, and arm64 binaries must be
+# signed to run, so re-sign everything (ad-hoc unless SIGN_IDENTITY is set).
+codesign --force --sign "${SIGN_IDENTITY:--}" Spek.app/Contents/Frameworks/*.dylib
+codesign --force --sign "${SIGN_IDENTITY:--}" Spek.app
 
 # Make DMG image
 VOLUME_NAME=Spek

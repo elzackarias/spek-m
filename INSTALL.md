@@ -11,10 +11,22 @@ it somewhere on your disk and run `Spek\spek.exe`.
 
 ## Mac OS X
 
-Spek for Mac OS X is available in the download section. Download and open the
+Spek for macOS is available in the download section. Download and open the
 DMG package, then drag the Spek icon to Applications.
 
-Spek requires OS X 10.5+ and an Intel-based Mac.
+Spek requires macOS 27.0 or later and runs natively on Apple Silicon.
+
+Spek is not notarized by Apple, so macOS blocks it the first time it's opened.
+To allow it:
+
+1. Open Spek from Applications. macOS shows a warning that it can't verify the
+   app. Click **Done**.
+2. Open **System Settings → Privacy & Security**, scroll down to the message
+   about Spek and click **Open Anyway**, then confirm with your password.
+
+This is only needed once. Alternatively, run this in Terminal:
+
+    xattr -dr com.apple.quarantine /Applications/Spek.app
 
 ## *BSD and GNU/Linux
 

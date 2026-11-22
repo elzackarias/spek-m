@@ -1,19 +1,28 @@
-# Building the OS X bundle
+# Building the macOS bundle
+
+Works natively on both Apple Silicon (arm64, Homebrew in `/opt/homebrew`)
+and Intel (x86_64, Homebrew in `/usr/local`).
 
 Using [Homebrew](http://brew.sh) install build dependencies:
 
-    brew install automake coreutils git
+    brew install autoconf automake libtool pkgconf gettext git
     brew install ffmpeg wxwidgets
+    brew install meson ninja cmake nasm
 
-Add a missing symlink:
+Rebuild the libraries whose Homebrew bottles need a newer macOS than the
+target (only needed once, or after `brew upgrade`):
 
-    (cd /usr/local/share/aclocal && ln -s ../../Cellar/wxwidgets/3.2.1/share/wx/3.2/aclocal/wxwin.m4 .)
-
-Fix libbrotli loader_path:
-
-    install_name_tool -change "@loader_path/libbrotlicommon.1.dylib" "/usr/local/lib/libbrotlicommon.1.dylib" /usr/local/lib/libbrotlidec.1.dylib
-    install_name_tool -change "@loader_path/libbrotlicommon.1.dylib" "/usr/local/lib/libbrotlicommon.1.dylib" /usr/local/lib/libbrotlienc.1.dylib
+    ./dist/osx/build-deps.sh
 
 Bundle Spek:
 
     ./dist/osx/bundle.sh
+
+Both scripts target macOS 27.0 by default; override with `MACOS_TARGET=...`.
+`bundle.sh` fails if any bundled library needs a newer macOS, and lists which
+ones to add to `build-deps.sh`.
+
+The app is signed ad-hoc by default. To sign with a Developer ID instead:
+
+    SIGN_IDENTITY="Developer ID Application: ..." ./dist/osx/bundle.sh
+

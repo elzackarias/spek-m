@@ -24,6 +24,8 @@ depcomp
 dist/osx/Info.plist
 dist/osx/Spek.app
 dist/osx/Spek.dmg
+dist/osx/deps/
+dist/osx/deps-build/
 dist/win/Spek
 dist/win/spek.wxs
 dist/win/tests
